@@ -7,18 +7,27 @@ import (
 
 // type handler struct{}
 
-// func (handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-// 	w.WriteHeader(http.StatusNotFound)
-// 	fmt.Fprintln(w, "404 Not Found")
-// }
+func healthzHandlder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
 
 func main() {
+	const filepathRoot = "."
+	const port = "8080"
+
 	mux := http.NewServeMux()
-	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	mux.Handle("/", http.FileServer(http.Dir(".")))
-	server := &http.Server{
-		Addr:    ":8080",
+	mux.HandleFunc("/healthz", healthzHandlder)
+
+	fileServer := http.FileServer(http.Dir(filepathRoot))
+	mux.Handle("/app/", http.StripPrefix("/app", fileServer))
+
+	srv := &http.Server{
+		Addr:    ":" + port,
 		Handler: mux,
 	}
-	log.Fatal(server.ListenAndServe())
+
+	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
+	log.Fatal(srv.ListenAndServe())
 }
